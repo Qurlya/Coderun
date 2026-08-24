@@ -1,0 +1,40 @@
+name: PR Auto Tests
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.12"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest
+
+    - name: Run tests only for changed folders
+      run: |
+        CHANGED_DIRS=$(git diff --name-only origin/main...HEAD | grep '/' | cut -d'/' -f1 | sort | uniq)
+        
+        if [ -z "$CHANGED_DIRS" ]; then
+          echo "No task folders changed."
+          exit 0
+        fi
+
+        for dir in $CHANGED_DIRS; do
+          if [ -f "$dir/test_main.py" ]; then
+            echo "Running tests in $dir..."
+            pytest "$dir/"
+          fi
+        done
